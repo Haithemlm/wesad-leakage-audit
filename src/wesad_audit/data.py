@@ -27,11 +27,12 @@ class Window:
     signals: dict  # name -> np.ndarray for this window
 
 
-def load_subject(path: Path) -> tuple[dict, np.ndarray]:
+def load_subject(path: Path) -> tuple[dict, np.ndarray, float]:
     with open(path, "rb") as f:
         d = pickle.load(f, encoding="latin1")
     wrist = {k: np.asarray(v, dtype=float) for k, v in d["signal"]["wrist"].items()}
-    return wrist, np.asarray(d["label"]).ravel()
+    # Original WESAD labels are at 700 Hz; the compact export (tools/extract_wrist.py) stores 4 Hz.
+    return wrist, np.asarray(d["label"]).ravel(), float(d.get("label_fs", LABEL_FS))
 
 
 def find_subjects(root: Path) -> list[Path]:
@@ -42,15 +43,15 @@ def find_subjects(root: Path) -> list[Path]:
 
 
 def cut_windows(wrist: dict, labels: np.ndarray, subject: str,
-                win_s: float = 60.0, step_s: float = 5.0) -> list[Window]:
+                win_s: float = 60.0, step_s: float = 5.0, label_fs: float = LABEL_FS) -> list[Window]:
     """Windows whose label is constant (pure baseline or pure stress)."""
-    dur = len(labels) / LABEL_FS
+    dur = len(labels) / label_fs
     for name, x in wrist.items():
         dur = min(dur, len(x) / FS[name])
     out: list[Window] = []
     t = 0.0
     while t + win_s <= dur:
-        lab = labels[int(t * LABEL_FS): int((t + win_s) * LABEL_FS)]
+        lab = labels[int(t * label_fs): int((t + win_s) * label_fs)]
         first = lab[0]
         if first in (BASELINE, STRESS) and np.all(lab == first):
             sig = {n: x[int(t * FS[n]): int(t * FS[n]) + int(win_s * FS[n])] for n, x in wrist.items()}

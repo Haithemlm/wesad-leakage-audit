@@ -26,8 +26,8 @@ PROTO_LABEL = {"random_kfold": "Random window k-fold\n(leaky)",
 def build_table(root: Path, win_s: float, step_s: float):
     rows, meta = [], []
     for p in find_subjects(root):
-        wrist, labels = load_subject(p)
-        for w in cut_windows(wrist, labels, p.stem, win_s, step_s):
+        wrist, labels, label_fs = load_subject(p)
+        for w in cut_windows(wrist, labels, p.stem, win_s, step_s, label_fs):
             rows.append(window_features(w.signals))
             meta.append(dict(subject=w.subject, t_start=w.t_start, label=w.label))
         print(f"  {p.stem}: {sum(m['subject'] == p.stem for m in meta)} windows")
