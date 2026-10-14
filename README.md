@@ -25,6 +25,14 @@ PYTHONPATH=src python -m wesad_audit.run --data /path/to/WESAD --out results
 
 Defaults: 60 s windows, 5 s step, wrist signals only. Change them with `--win` and `--step`.
 
+Then run the time-confound checks (condition order, elapsed-time baseline, skin-temperature ablation, late-calm test):
+
+```bash
+PYTHONPATH=src python -m wesad_audit.confound --data /path/to/WESAD --out results
+```
+
+If you cannot move the full 2 GB dataset, `python tools/extract_wrist.py /path/to/WESAD wesad_wrist_compact.zip` keeps only the wrist signals and labels (about 19 MB). The audit runs unchanged on the compact copy.
+
 Outputs in `results/`:
 
 - `protocol_scores.csv`: balanced accuracy and macro-F1 per model and protocol, plus the train/test overlap rate
@@ -57,7 +65,51 @@ The synthetic subjects only check that the code runs end to end. Their numbers s
 
 ## Results
 
-_Filled in from `results/` after the run on the real WESAD data._
+WESAD wrist signals, 15 subjects, 5,157 windows of 60 s (35% stress). All numbers below are balanced accuracy and come from the files in `results/`.
+
+| Model | Random window k-fold | Leave-one-subject-out | LOSO + per-subject standardization |
+|---|---|---|---|
+| Logistic regression | 0.976 | **0.929** | 0.966 |
+| Random forest | **1.000** | 0.908 | 0.914 |
+
+In the random k-fold protocol, 100% of test windows overlap in time with a training window from the same person.
+
+![Protocol comparison](results/fig_protocols.png)
+
+### Finding 1: the leaky protocol picks the wrong model
+
+Random k-fold says the random forest is perfect (1.000) and better than logistic regression (0.976). On people the model has never seen, the order reverses: logistic regression 0.929, random forest 0.908. A team that selects models with random k-fold ships the model that generalizes worse.
+
+### Finding 2: the average hides a failure
+
+The random forest's LOSO average of 0.908 includes one subject (S14) at 0.50, which is chance level, and one (S3) at 0.78. For logistic regression the worst subject (S15) scores 0.71. A single average says nothing about how many users the model fails.
+
+![Per-subject accuracy](results/fig_per_subject.png)
+
+### Finding 3: the dataset design confounds stress with time
+
+In WESAD every subject's baseline is recorded before their stress session (`results/condition_order.csv`). A model that sees nothing but the time since the recording started scores **0.997** on unseen subjects. The random forest's most important feature on held-out subjects is mean skin temperature, a signal that drifts as the sensor warms on the wrist. Removing the three temperature features drops the random forest from 0.908 to 0.855, while logistic regression is unchanged (0.935).
+
+| Features | Logistic regression (LOSO) | Random forest (LOSO) |
+|---|---|---|
+| All 29 features | 0.929 | 0.908 |
+| Without skin temperature | 0.935 | 0.855 |
+| Elapsed time only | 0.997 | 0.997 |
+
+### Finding 4: the models still mostly read physiology
+
+Meditation is a calm condition that is always recorded after baseline. Trained on baseline vs stress and applied to the held-out subject's meditation windows, a clock-only model calls 100% of them "stress". The physiological models call 10% to 17% of them stress, so they are mostly not reading the clock. Removing skin temperature lowers logistic regression from 17% to 10%, which is consistent with temperature carrying part of the time signal. (`results/late_calm_test.csv`)
+
+### Finding 5: per-user calibration is not a free gain
+
+Per-subject standardization lifts logistic regression from 0.929 to 0.966 but barely moves the random forest (0.908 to 0.914), and it hurts some individuals (S17 drops from 0.99 to 0.55 with the random forest). It also uses each test subject's full recording, so treat it as an upper bound on what a calibration period could deliver.
+
+### What this means for a team shipping a wearable stress model
+
+- Report leave-one-subject-out scores with the per-subject distribution, never random window k-fold.
+- On this data, choose the simpler logistic model: it generalizes better and depends less on sensor drift.
+- Drop or detrend skin temperature unless the data collection counterbalances condition order.
+- When collecting new data, randomize the order of conditions and include calm conditions after stress, then run the late-calm test as a standing check.
 
 ## Reference
 

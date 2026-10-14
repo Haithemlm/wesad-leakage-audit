@@ -1,0 +1,7 @@
+features,model,meditation_windows_called_stress
+all 29 features,logreg,0.17292590818929715
+all 29 features,random_forest,0.09565586700643126
+without skin temperature,logreg,0.10034391756959725
+without skin temperature,random_forest,0.09665089188205316
+elapsed time only,logreg,1.0
+elapsed time only,random_forest,1.0

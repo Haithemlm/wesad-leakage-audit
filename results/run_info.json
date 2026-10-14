@@ -1,0 +1,12 @@
+{
+  "dataset": "WESAD wrist (Empatica E4)",
+  "n_windows": 5157,
+  "n_features": 29,
+  "n_subjects": 15,
+  "window_s": 60.0,
+  "step_s": 5.0,
+  "stress_share": 0.35194880744618967,
+  "python": "3.13.16",
+  "sklearn": "1.9.1",
+  "run_utc": "2026-10-14T08:28:17+00:00"
+}

@@ -1,0 +1,7 @@
+features,model,loso_balanced_accuracy
+all 29 features,logreg,0.9288388207190231
+all 29 features,random_forest,0.9077023705308347
+without skin temperature,logreg,0.9348994267796291
+without skin temperature,random_forest,0.8545518841095796
+elapsed time only,logreg,0.9965589467384799
+elapsed time only,random_forest,0.9967085577498505
