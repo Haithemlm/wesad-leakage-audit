@@ -111,9 +111,34 @@ Per-subject standardization lifts logistic regression from 0.929 to 0.966 but ba
 - Drop or detrend skin temperature unless the data collection counterbalances condition order.
 - When collecting new data, randomize the order of conditions and include calm conditions after stress, then run the late-calm test as a standing check.
 
-## Reference
+## Regulatory alignment
+
+For teams building a wearable that is, or may become, a medical device, each finding maps onto
+the *Good Machine Learning Practice for Medical Device Development: Guiding Principles*
+published jointly by the US FDA, Health Canada and the UK MHRA (2021). The table shows which
+principle a finding puts at risk and what evidence the check produces.
+
+| Finding | GMLP principle at stake | Evidence produced by the check |
+|---|---|---|
+| 1. Random k-fold picks the wrong model | **4.** Training data sets are independent of test sets | Train/test overlap rate (100% of test windows under random k-fold); scores under a subject-independent split |
+| 2. The average hides a subject at chance | **3.** Clinical study participants and data sets are representative of the intended patient population. **8.** Testing demonstrates device performance during clinically relevant conditions | Per-subject score distribution (`per_subject_scores.csv`), worst-case subject, not only the mean |
+| 3. Stress is confounded with elapsed time | **8.** Testing demonstrates device performance during clinically relevant conditions | Condition-order table, clock-only baseline (0.997), skin-temperature ablation |
+| 4. The models mostly read physiology | **8.** (as above) and **10.** Deployed models are monitored for performance | Late-calm test: share of calm windows recorded after stress that the model calls stress, which can be rerun as a standing check |
+| 5. Per-user calibration is not a free gain | **6.** Model design is tailored to the available data and reflects the intended use of the device | Per-subject effect of calibration, including the users it harms, and the caveat that this is an upper bound |
+
+In risk-management terms (ISO 14971), each failing subject is a *hazardous situation*: a user
+for whom the model misses stress, or raises false alarms, systematically. A subject-level
+acceptance criterion, such as a minimum balanced accuracy for every held-out subject, is a
+measurable risk control that a single average cannot provide.
+
+This mapping shows which principles the checks address. It is not a regulatory assessment and
+does not establish compliance of any product.
+
+## References
 
 Schmidt, P., Reiss, A., Duerichen, R., Marberger, C., Van Laerhoven, K. (2018). *Introducing WESAD, a multimodal dataset for wearable stress and affect detection.* ICMI 2018.
+
+U.S. Food and Drug Administration, Health Canada, Medicines and Healthcare products Regulatory Agency (2021). *Good Machine Learning Practice for Medical Device Development: Guiding Principles.* https://www.fda.gov/media/153486/download
 
 ## Author
 
